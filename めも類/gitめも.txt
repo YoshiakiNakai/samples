@@ -1,0 +1,240 @@
+
+◆参考サイト
+git、cloneから、pushまでをざっくり
+https://akiyoko.hatenablog.jp/entry/2014/12/02/000939
+
+◆基本用語
+repository：コミットが記録されてるとこ
+index：ファイルをstageする場所。repositoryにcommitする準備をするための場所
+work tree：編集しているディレクトリやファイルたち。また、その場所のこと
+head：現在の作業ブランチの先頭コミット
+origin:clone元
+master：デフォルトの最初のブランチ名。
+
+細かい用語
+remote tracking branch：リモート追跡ブランチ、リモートブランチの更新を追跡、反映するためのローカルブランチ。origin/masterブランチなどが該当する
+origin/master：リモートのマスターブランチを追跡するためのローカルブランチ。
+fast-forward：コミットAがコミットBにfast-forwardするとき、コミットAはコミットBの履歴に全て内包されている。
+http://d.hatena.ne.jp/sinsoku/20111025/1319497900
+マージの際に、デフォルトでは、fast-forwardの場合、マージコミットを作らない。
+
+◆各コマンド操作が、どこ（repository, index, work tree）に対して、操作を行っているのか、意識すること
+
+◆git設定
+//設定確認
+git config --list
+//設定
+git config --global user.name nobo
+git config --global user.email a@a.a
+git config --global core.autocrlf false		//改行コード自動変換をオフ
+git config --global core.pager "LESSCHARSET=utf-8 less"		//文字コードを変更
+
+
+◆git作成
+//カレントにgit repositoryを作成する
+git init
+
+//bare repositoryの作成、参考サイト
+http://vdeep.net/git-push-deploy#i-4
+
+◆clone
+git clone リポジトリ ディレクトリ
+//-URL指定可能
+//-sshも可能
+git clone nobo:~/nobo-log.com/nobo.git
+git clone -l -s クローンするリポジトリ
+//-ローカルのgitをコピーする際はオプション -l -s をつける
+
+
+◆bare repositoryの作成（bare：裸。pushによって上書きされることを許可するrepository）
+//作成したい元のgitをcloneする
+git clone --bare --shared ~/nobo-log.com/public_html/ nobo.git
+//post-receiveの設定	//ファイルの作成
+cd nobo.git/hooks/
+vi post-receive
+---以下を記述---
+cd ~/nobo-log.com/public_html/
+git --git-dir=.git pull ~/nobo-log.com/nobo.git master
+----------------
+chmod +x post-receive
+//権限付与を忘れずに
+
+
+◆githubの設定
+ssh設定
+（githubのsetting/keys/new/へ行く）
+Deploy keys で登録できる
+
+
+◆remote repositoryの登録(githubに上げる)
+git remote set-url --add origin ＵＲＬ
+git remote -v	#設定の確認
+もしくは
+.git/config の [remote "origin"] に追記する---
+[remote "origin"]
+	url = nobo:~/nobo-log.com/gitTest/gitTest.git/	#cloneで自動追記される
+	fetch = +refs/heads/*:refs/remotes/origin/*		#cloneで自動追記される
+	url = github:YoshiakiNakai/gitTest.git		#追記
+
+◆remote repositoryの追加
+.git/config の [remote "origin"] に以下のように追記する---
+[remote "devlop"]
+	url = C:/Users/Nakai Yoshiaki/Desktop/wordpress_dev/src-nobolog/nobo-git/gitTest2
+	fetch = +refs/heads/*:refs/remotes/devlop/*
+	# *:は追跡するブランチ。*だと、全てのブランチについて追跡ブランチが作成される
+[branch "sub"]
+	remote = devlop
+	merge = refs/heads/master	# リモートリポジトリのどのブランチをマージするか指定
+	# ブランチsubにて、pullを行うと、devlopのmasterがsubにマージされる。
+
+remoteを追加するコマンドは以下
+git remote add オプション リモート名 リモート先
+git remote add devlop "C:/Users/Nakai Yoshiaki/gitTest"
+-t: 追跡するリモート先のブランチ名。
+
+
+----------------------------------------------
+
+◆branch作成
+git branch	//現在のbranch一覧を表示
+git checkout 移動先ブランチ名	//ブランチの移動
+git checkout -b ブランチ名		//ブランチの作成と移動
+git branch -a		# remote branchも含めすべてのブランチ表示
+
+◆checkout
+１．作業ブランチを切り替える
+git checkout master
+//-現在のwork treeの作業状態は残される。コンフリクトする場合は、エラーが発生する
+-f：work treeの変更を破棄して、強制的に切り替える
+-b：ブランチを新規作成する
+
+２．指定したブランチの最新状態を、作業ツリーに展開する◆
+git checkout ブランチ ファイル
+git checkout master .
+//-新規ファイルは削除されない。
+
+◆fetch
+//remote repositoryをリモート追跡ブランチに反映する
+//work treeは更新されない
+//mergeする前に、他の人のコミット内容を確認したいときに使う
+git fetch	# origin/masterに反映される
+https://yu8mada.com/2018/06/07/how-to-use-git-s-fetch-command/#content-1
+
+◆pull
+//remote repository を local repository にmergeする。fetchして、merge。
+# origin/masterを更新して、origin/masterをmasterにマージする
+//mergeされると、work treeの状態がrepositoryと合わせられる
+git pull nobo:~/nobo-log.com/nobo.git japanMap	# git pull リポジトリ ブランチ
+
+
+
+◆merge
+//mergeを行う前にまず、幹となるbranchに移動する
+git checkout master
+//枝をマージ
+git merge ブランチA
+git merge --strategy=octopus ブランチA ブランチB	#複数ブランチを同時マージ
+https://qiita.com/shuntaro_tamura/items/6c8bf792087fe5dc5103
+
+◆rebase
+１．今いる枝を別の枝に接ぎ木する
+//接ぎ木したい枝に移動する
+git checkout 枝名
+git rebase 繋ぎ先	# git rebase master
+その後、masterで枝をmergeする。fast-forwardとなるため、デフォルトではコミットは作られない
+git checkout master
+git merge 枝名
+https://liginc.co.jp/web/tool/79390
+git branch -D 枝名	# 枝を剪定
+
+２．コミットの編集（して接ぎ直す）
+git rebase -i コミット指定
+//headから指定したコミットまでを編集する
+//linuxのviコマンドと同じ方式で編集できる
+・pick：コミットを採用
+・reword：コミットを採用するがコミットメッセージを変更
+・edit：コミットを採用するがファイルを修正する
+・squash：一個前のコミットと合体させる
+・fixup：コミットメッセージを変更しない点以外squashと同じ
+・exec：shellでコマンドを実行する
+が行える
+
+◆branch マージ後、ブランチ削除
+git branch --merged 基準ブランチ	# マージ済みブランチの一覧
+git branch --no-merged 基準ブランチ	# 未マージブランチの一覧
+git branch -d ブランチ名			# マージ済みブランチの削除
+git branch -D ブランチ名			# 強制的なブランチの削除
+
+git branch --merged master
+
+追跡ブランチの削除
+git branch -dr origin/master	# リモート名から記述すること
+
+◆状態確認
+git diff	//差分表示
+git status	//work treeの状態を確認、変更ファイルの確認、stageしたファイルの確認など
+git log	//commit履歴確認
+//-log確認モードに移行する。hでヘルプ表示
+
+◆stage作業
+//stageする
+git add .	//現在のディレクトリのファイル全て
+git add -u	//管理対象(commit済み)ファイルのみstage。新規ファイルはstageしない
+git add ファイル名
+
+git status	//stageしたファイルの確認
+
+//stageをキャンセル		//使いづらいので、resetコマンドを使うこと推奨
+git rm --cached ファイル名
+git rm -r --cached ディレクトリ名
+git rm --cached *.php
+※オプション--cachedをつけないとworkのファイル削除になる
+※-stageしていないファイルに対して、rm --cachedすると、ファイル削除をstageしたことになる
+
+git reset HEAD ファイル	//indexの指定したファイルをheadの状態に戻す
+
+◆commit
+commit -m メッセージ
+git log		//commit log確認
+
+//直前のcommitメッセージ修正
+git commit --amend -m "メッセージを修正"
+
+
+◆push
+git push origin master
+//origin：clone元のgit repository
+//master：master branch
+//master branchをoriginへpush
+
+git push -u origin master とすると次回から git push だけで勝手に origin master で push してくれる
+
+◆reset
+１．インデックスを、任意の状態にリセットする
+git reset コミット ファイル
+git reset head ファイル
+//-indexをheadの状態にリセットする
+
+２．HEADを、指定したコミットに移動する◆コミットを取り消すことにも使える
+オプション
+指定なし：headを移動し、indexをリセット
+--soft：headのみ移動。
+--hard：headを移動、indexをリセット、作業ツリーもリセット（untracked filesは含まない）
+
+git reset コミット
+
+
+//直前のコミットへ戻る。この後再度コミットを行えば、コミットの上書き修正ができる
+git reset --soft HEAD~1
+
+//過去のコミットの状態に強制的に戻す
+git reset --hard コミット
+
+◆git reflog
+HEADの履歴を見る
+リポジトリのコミットID履歴が見れる。
+git reset --hard コミット
+で指定したコミットの状態にできる。
+https://gist.github.com/kymmt90/9c997726b638b316f9be07aa4e3eea5e
+reflog（参照ログ）とは HEAD やブランチ先端の動きの履歴
+
