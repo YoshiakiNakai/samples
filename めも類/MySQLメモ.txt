@@ -1,0 +1,285 @@
+
+
+〇「utf8」は3byte文字。
+「utf8mb4」が4byte文字で、本当のutf8。
+3byte文字だと、一部絵文字や、漢字が文字化けする。
+「utf8mb4」を指定すること。
+
+
+
+〇データ型
+char	固定長。足りない場合、スペースで埋められる
+varchar	可変長。データ長を保存する領域も必要。
+
+
+〇MySql設定
+
+設定ファイル
+C:\ProgramData\MySQL\MySQL Server 8.0
+my.ini
+
+
+〇ユーザの設定
+//mysql.userにユーザ設定情報が保存されている。
+SELECT * FROM mysql.user;
+///属性は、user, host, plugin, など
+CREATE USER 'ユーザ名'@'ホスト名' IDENTIFIED BY 'パスワード';
+
+DROP USER 'なかい'@'mysqlxxxx.xserver.jp';
+
+
+//認証方式の変更（とパスワードの変更）
+ALTER USER 'ユーザ名'@'ホスト名' IDENTIFIED WITH mysql_native_password BY 'パスワード';
+///認証方式を「mysql_native_password」に変更すること。
+///（「caching_sha2_password」は、wpが対応していないため）
+
+〇DBの作成と設定
+SHOW DATABASES;				//存在するDBの表示
+CREATE DATABASE ＤＢ名;		//DBの作成
+SELECT * FROM INFORMATION_SCHEMA.SCHEMATA;	//DBの設定情報
+DROP DATABASE ＤＢ名;		//DBの削除
+
+〇文字コード設定
+SHOW VARIABLES LIKE "CHARA%";
+ALTER DATABASE ＤＢ名 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+ALTER  DATABASE ＤＢ名 CHARACTER SET 文字コード COLLATE 照合順序;
+
+※MySQLのutf8は、4byte非対応文字のため、utf8mb4を使用すること
+
+//ユーザに権限を付与する
+SHOW GRANTS FOR 'ユーザ名'@'ホスト名';		//権限の確認
+GRANT コマンド ON 権限レベル TO 'ユーザ名'@'ホスト名';		//権限付与
+GRANT ALL ON ＤＢ名.* TO 'ユーザ名'@'ホスト名';	//DBレベルで全てのコマンド権限を付与
+
+===========================================================================
+
+〇ログイン
+mysql -u root -p
+-u:ユーザ指定
+-p:パスワード入力
+-h:ホスト名
+mysql -u 'ユーザ名' -h 'mysqlxxxx.xserver.jp' -p
+
+USE ＤＢ名;			//DBへ接続
+SELECT DATABASE();	//今接続しているDB名の表示
+
+
+
+〇構造確認
+SHOW TABLES;
+SHOW COLUMNS FROM テーブル名;
+SHOW CREATE TABLE テーブル名;
+SHOW INDEX FROM テーブル名;
+
+〇基本
+CREATE テーブル名 (属性1 データ型, 属性2 データ型);
+SELECT * FROM テーブル名;
+UPDATE テーブル名 SET 属性名=値, ... WHERE 条件文;
+UPDATE reviews SET text = "update", datetime = NOW()
+	WHERE project_id = "0101010001" AND user_id = 1;
+
+DELETE FROM テーブル名 WHERE 条件文;
+INSERT INTO テーブル名 (属性1, 属性2, ...) VALUES (値1, 値2, ...);
+INSERT INTO テーブル名 (属性1, 属性2, ...)
+	VALUES
+		(値1, 値2, ...),
+		(値1, 値2, ...);
+
+〇構造変更
+・カラム操作
+ALTER TABLE テーブル名 ADD カラム データ型他;
+ALTER TABLE テーブル名 CHANGE 変更するカラム 変更後カラム名 カラム定義;
+ALTER TABLE テーブル名 DROP カラム名;
+・キー追加
+ALTER TABLE テーブル名 ADD PRIMARY KEY (カラム名, ...);
+FOREIGN KEY () REFERENCES 外部テーブル名(カラム名) ON DELETE no action ON UPDATE cascade
+・キー削除
+ALTER TABLE テーブル名 DROP PRIMARY KEY;
+ALTER TABLE テーブル名 DROP FOREIGN KEY キー名;
+ALTER TABLE テーブル名 DROP KEY キー名;
+
+ALTER TABLE テーブル名 auto_increment = 1;
+
+〇文字列をdatetimeに変換
+STR_TO_DATE("2019-04-29 14:19:54", '%Y-%m-%d %H:%i:%s')
+
+
+〇ON DUPLICATE KEY UPDATE
+INSERT INTO reviews(project_id, user_id, text, datetime)
+VALUES("0101010001", 1, "insert", NOW())
+ON DUPLICATE KEY UPDATE
+	text = "update", datetime = NOW();
+//ON DUPLICATE KEY UPDATE後では、属性=値、しか記述できない
+---------------------------------------------------
+
+
+〇bitテーブル
+CREATE TABLE bitTable (b8 BIT(8));
+INSERT INTO t SET b = b'11111111';
+INSERT INTO t SET b = b'11001100';
+INSERT INTO t SET b = x'FF';
+SELECT b+0, BIN(b), HEX(b) FROM t;
+SELECT b+0, BIN(b), HEX(b) FROM t where b8 & b'00000001';
+SELECT b+0, BIN(b), HEX(b) FROM t where b8 & 1;
+
+bit値の表現は、接頭辞bをつける
+値を使うときは、0を足すか、関数で変換する
+SELECT bit64+0, hex(bit64) FROM bitt where bit64 = x'FFFFFFFF';
+SELECT bit64+0, hex(bit64) FROM bitt where bit64 & x'100000000';
+SELECT bit64+0, hex(bit64) FROM bitt where bit64 = x'FFFFFFFFFFFFFFFF';
+SELECT bit64+0, hex(bit64) FROM bitt where bit64 & x'1000000000000000';
+4byteを超えると、=演算子は正常に動作しなくなる。&演算子は使用可能
+
+=====================================================
+
+
+〇テーブル作成例
+注意点
+・型
+・文字コード
+・key
+・not null
+
+
+CREATE TABLE `users` (
+`id` int unsigned primary key auto_increment,
+`name` varchar(190),
+`email` varchar(190) unique not null,
+`pass` varchar(190) not null,
+`icon` varchar(190),
+`date` date not null,
+`age` tinyint unsigned,
+`gender` tinyint unsigned,
+`height` tinyint unsigned,
+`weight` tinyint unsigned,
+`favorite` char(6) charset ascii,
+`lead_best_grade` float,
+`boulder_best_grade` float,
+`experience` tinyint unsigned,
+`iine` int unsigned,
+`points` int unsigned,
+FOREIGN KEY (favorite) REFERENCES areas(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+〇外部キー制約
+
+ALTER TABLE users 
+ADD FOREIGN KEY(favorite)
+REFERENCES areas(id)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+CREATE TABLE reviews (
+`project_id` char(10) charset ascii not null,
+`user_id` int unsigned not null,
+`datetime` datetime not null,
+`review_grade` float,
+`shoes` int unsigned,
+`climb_date` date,
+`try_times` tinyint unsigned,
+`weather` tinyint unsigned,
+`temperature` tinyint unsigned,
+`text` text,
+PRIMARY KEY(project_id, user_id),
+FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE no action ON UPDATE cascade,
+FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE no action ON UPDATE cascade
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+---------------------------------------------------
+〇INSERT例
+INSERT INTO `tcash_nobo`.`prefectures` (`id`, `name`) 
+VALUES 
+	('0101', '北海道')
+	('0102', '青森')
+	('0103', '岩手');
+
+INSERT INTO areas(id, name)
+VALUES 
+	('010101', '見晴岩')
+	('010102', '赤岩青巌峡')
+	('010103', '石垣山')
+	('010201', '階上');
+
+
+---------------------------------------------------
+〇DELETE例
+DELETE FROM reviews WHERE project_id = "0101010003";
+
+〇ALTER例
+ALTER TABLE users DROP iine;
+ALTER TABLE bitT ADD b64 bit(64);
+ALTER TABLE reviews ADD iine tinyint unsigned default(0);
+ALTER TABLE テーブル名 ADD PRIMARY KEY (カラム名);
+ALTER TABLE テーブル名 DROP PRIMARY KEY;
+ALTER TABLE テーブル名 CHANGE 変更するカラム 変更後カラム名 カラム定義;
+
+ALTER TABLE replies ADD PRIMARY KEY (rvw_project_id, rvw_user_id, datetime, rp_user_id);
+
+ALTER TABLE replies CHANGE obj_project_id rvw_project_id char(10) charset ascii not null;
+ALTER TABLE replies CHANGE obj_user_id rvw_user_id int unsigned not null;
+
+ALTER TABLE `replies` ADD `iine` TINYINT UNSIGNED NOT NULL DEFAULT '0' AFTER `text`;
+
+
+〇INNER JOIN
+SELECT users.id, users.name, reviews.text, reviews.datetime
+FROM reviews INNER JOIN users ON reviews.user_id = users.id
+WHERE reviews.project_id = '0101010004'
+	and DATE_ADD(reviews.datetime, INTERVAL 24 HOUR) > NOW();
+
+〇INNER JOIN
+結合条件を満たすもののみが抽出結合されたテーブルを取得する
+（両方共に項目が存在しなければ、抽出されない）
+
+〇LEFT/RIGHT OUTER JOIN
+左右どちらのテーブルを基礎とするか選ぶ。
+基礎とする側のテーブルデータに、テーブルを結合する。
+条件が合致しない項目はNULLが入る。
+
+
+〇同じテーブルから別の条件でデータを取得する方法
+１．結合テーブルに別名をつける
+２．取得結果に対し、演算を行って目的のデータを取得する
+
+//ある課題のreview(課題ID, ユーザID)一覧を取得
+//いいね数をカウント、自分がいいねしてるか確認
+//同じテーブルに別名をつけて結合する方法
+SELECT users.id, users.name, reviews.text, reviews.datetime,
+	count(count_iine.iine_user_id) AS iine_num,
+	my_iine.iine_user_id AS iine_done
+FROM reviews
+INNER JOIN users ON reviews.user_id = users.id
+LEFT OUTER JOIN rvw_iine AS count_iine
+	ON reviews.user_id = count_iine.rvw_user_id
+	AND reviews.project_id = count_iine.project_id
+LEFT OUTER JOIN rvw_iine AS my_iine
+	ON reviews.user_id = my_iine.rvw_user_id
+	AND reviews.project_id = my_iine.project_id
+	AND my_iine.iine_user_id = 2
+WHERE reviews.project_id = "0101010001"
+GROUP BY users.id;
+
+
+//ある課題のreview(課題ID, ユーザID)一覧を取得
+//いいね数をカウント、自分がいいねしてるか確認
+//取得結果から自分のユーザIDが存在するかを演算して確認するパターン
+//group byで代表して取得される行は保証がないため、集計関数を挟む必要がある。
+SELECT users.id, users.name, reviews.text, reviews.datetime,
+	COUNT(rvw_iine.iine_user_id) AS iine_num,
+	SUM(rvw_iine.iine_user_id = 2) AS iine_done
+FROM reviews
+INNER JOIN users ON reviews.user_id = users.id
+LEFT OUTER JOIN rvw_iine
+	ON rvw_iine.rvw_user_id = reviews.user_id
+	AND rvw_iine.project_id = reviews.project_id
+WHERE reviews.project_id = "0101010001"
+GROUP BY users.id;
+
+//集計方法参考
+COUNT(*)	//null行があってもカウントされる
+COUNT(XX)	//nullはカウントされない、ないとき0
+SUM(XX > 0)	//ないときnullとなる
+COUNT(CASE WHEN カラムA=1 THEN 1 ELSE null END)
+
