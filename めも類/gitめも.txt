@@ -24,7 +24,7 @@ http://d.hatena.ne.jp/sinsoku/20111025/1319497900
 //設定確認
 git config --list
 //設定
-git config --global user.name nobo
+git config --local user.name なかい
 git config --global user.email a@a.a
 git config --global core.autocrlf false		//改行コード自動変換をオフ
 git config --global core.pager "LESSCHARSET=utf-8 less"		//文字コードを変更
@@ -41,20 +41,20 @@ http://vdeep.net/git-push-deploy#i-4
 git clone リポジトリ ディレクトリ
 //-URL指定可能
 //-sshも可能
-git clone nobo:~/nobo-log.com/nobo.git
+git clone xxxx:~/xxx.com/x.git
 git clone -l -s クローンするリポジトリ
 //-ローカルのgitをコピーする際はオプション -l -s をつける
 
 
 ◆bare repositoryの作成（bare：裸。pushによって上書きされることを許可するrepository）
 //作成したい元のgitをcloneする
-git clone --bare --shared ~/nobo-log.com/public_html/ nobo.git
+git clone --bare --shared ~/xxx.com/public_html/.git
 //post-receiveの設定	//ファイルの作成
-cd nobo.git/hooks/
+cd xxxx.git/hooks/
 vi post-receive
 ---以下を記述---
-cd ~/nobo-log.com/public_html/
-git --git-dir=.git pull ~/nobo-log.com/nobo.git master
+cd ~/xxxx-log.com/public_html/
+git --git-dir=.git pull ~/xxx.com/x.git master
 ----------------
 chmod +x post-receive
 //権限付与を忘れずに
@@ -72,14 +72,14 @@ git remote -v	#設定の確認
 もしくは
 .git/config の [remote "origin"] に追記する---
 [remote "origin"]
-	url = nobo:~/nobo-log.com/gitTest/gitTest.git/	#cloneで自動追記される
+	url = xxxx:~/xxxx-log.com/gitTest/gitTest.git/	#cloneで自動追記される
 	fetch = +refs/heads/*:refs/remotes/origin/*		#cloneで自動追記される
 	url = github:YoshiakiNakai/gitTest.git		#追記
 
 ◆remote repositoryの追加
 .git/config の [remote "origin"] に以下のように追記する---
 [remote "devlop"]
-	url = C:/Users/Nakai Yoshiaki/Desktop/wordpress_dev/src-nobolog/nobo-git/gitTest2
+	url = C:/Users/Nakai Yoshiaki/Desktop/wordpress_dev/src-xxxxlog/xxxx-git/gitTest2
 	fetch = +refs/heads/*:refs/remotes/devlop/*
 	# *:は追跡するブランチ。*だと、全てのブランチについて追跡ブランチが作成される
 [branch "sub"]
@@ -124,7 +124,7 @@ https://yu8mada.com/2018/06/07/how-to-use-git-s-fetch-command/#content-1
 //remote repository を local repository にmergeする。fetchして、merge。
 # origin/masterを更新して、origin/masterをmasterにマージする
 //mergeされると、work treeの状態がrepositoryと合わせられる
-git pull nobo:~/nobo-log.com/nobo.git japanMap	# git pull リポジトリ ブランチ
+git pull xxxx:~/xxxx-log.com/xxxx.git japanMap	# git pull リポジトリ ブランチ
 
 
 
